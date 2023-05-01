@@ -73,7 +73,7 @@ class CodeGenRunner : ExprMutator {
   Expr VisitExpr_(const CallNode* call_node) override {
     auto call = Downcast<Call>(ExprMutator::VisitExpr_(call_node));
     if (auto const* gvar_node = call_node->op.as<GlobalVarNode>()) {
-      const GlobalVar gvar = GetRef<GlobalVar>(gvar_node);
+      const GlobalVar gvar = builder_->GetContextIRModule()->GetGlobalVar(gvar_node->name_hint);
 
       auto create_call_dps_packed = [call_node, this](Expr extern_func,
                                                       StructInfo ret_struct_info) {
@@ -89,7 +89,7 @@ class CodeGenRunner : ExprMutator {
         return create_call_dps_packed(it->second.first, it->second.second);
       } else {
         // TODO(@sunggg): Is there any better way to get this func?
-        Function func = Downcast<Function>(builder_->GetContextIRModule()->Lookup(gvar->name_hint));
+        Function func = Downcast<Function>(builder_->GetContextIRModule()->Lookup(gvar));
         Expr new_func = VisitExpr(func);
 
         if (new_func->IsInstance<ExternFuncNode>()) {

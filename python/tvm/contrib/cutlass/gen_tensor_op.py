@@ -712,7 +712,7 @@ def instantiate_template(func_name, annotations, func_args):
         if h_v > 64:
             attrs["kQueriesPerBlock"] = 32
             attrs["kKeysPerBlock"] = 128
-            attrs["kSingleValueIteration"] = h_v <= 128
+            attrs["kSingleValueIteration"] = bool(h_v <= 128)
         else:
             attrs["kQueriesPerBlock"] = 64
             attrs["kKeysPerBlock"] = 64

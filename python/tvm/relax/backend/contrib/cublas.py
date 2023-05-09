@@ -57,7 +57,7 @@ def _check_matmul(context: PatternCheckContext) -> bool:
         bias = context.annotated_expr["bias"]
         bias_shape = bias.struct_info.shape.values
         bias_batches = reduce(operator.mul, bias_shape[:-1], 1)
-        if bias_batches > 1:
+        if not isinstance(bias_batches, (tvm.tir.expr.IntImm, int)) or int(bias_batches) > 1:
             # cuBLAS only supports bias vector
             return False
 

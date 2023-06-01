@@ -35,6 +35,7 @@
  *
  * We can evolve this implementation as we build more LM verticals.
  */
+#include <dlpack/dlpack.h>
 #include <tvm/runtime/container/shape_tuple.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/logging.h>
@@ -161,9 +162,70 @@ class AttentionKVCache : public ObjectRef {
 
 TVM_REGISTER_OBJECT_TYPE(AttentionKVCacheObj);
 
+class AttentionKVCacheGroupObj : public Object {
+ public:
+  Array<AttentionKVCache> caches;
+  ShapeTuple cache_shape;
+
+  AttentionKVCache Get(const size_t cache_index) { return caches[cache_index]; }
+
+  static constexpr const uint32_t _type_index = TypeIndex::kDynamic;
+  static constexpr const char* _type_key = "relax.vm.AttentionKVCacheGroup";
+  TVM_DECLARE_FINAL_OBJECT_INFO(AttentionKVCacheGroupObj, Object);
+};
+
+class AttentionKVCacheGroup : public ObjectRef {
+ public:
+  static AttentionKVCacheGroup CreateFromDummyData(ShapeTuple reserve_shape, NDArray dummy_data,
+                                                   size_t num_cache) {
+    return Create(reserve_shape, dummy_data->dtype, dummy_data->device, num_cache);
+  }
+  static AttentionKVCacheGroup Create(ShapeTuple reserve_shape, DLDataType dtype, Device dev,
+                                      size_t num_cache) {
+    std::vector<int64_t> pool_shape = {static_cast<long>(num_cache * reserve_shape[0])};
+    for (size_t i = 1; i < reserve_shape.size(); ++i) {
+      pool_shape.push_back(reserve_shape[i]);
+    }
+
+    size_t cache_offset = (dtype.bits * dtype.lanes + 7) / 8;
+    for (const auto dim : reserve_shape) {
+      cache_offset *= dim;
+    }
+
+    auto data = NDArray::Empty(pool_shape, dtype, dev);
+
+    auto n = make_object<AttentionKVCacheGroupObj>();
+    n->cache_shape = reserve_shape;
+    for (size_t i = 0; i < num_cache; ++i) {
+      auto c = make_object<AttentionKVCacheObj>();
+      DLManagedTensor* data_view = data.ToDLPack();
+      data_view->dl_tensor.byte_offset = i * cache_offset;
+      data_view->dl_tensor.shape = const_cast<ShapeTuple::index_type*>(n->cache_shape.data());
+
+      c->data = NDArray::FromDLPack(data_view);
+      c->fill_count = 0;
+      n->caches.push_back(AttentionKVCache(c));
+    }
+    return AttentionKVCacheGroup(n);
+  }
+
+  TVM_DEFINE_MUTABLE_OBJECT_REF_METHODS(AttentionKVCacheGroup, ObjectRef, AttentionKVCacheGroupObj);
+};
+
+TVM_REGISTER_OBJECT_TYPE(AttentionKVCacheGroupObj);
+
 //-------------------------------------------------
 //  Register runtime functions
 //-------------------------------------------------
+TVM_REGISTER_GLOBAL("vm.builtin.attention_kv_cache_group_create")
+    .set_body_typed(AttentionKVCacheGroup::CreateFromDummyData);
+
+AttentionKVCache AttentionKVCacheGroupGetCache(AttentionKVCacheGroup group, size_t i) {
+  return group->Get(i);
+}
+TVM_REGISTER_GLOBAL("vm.builtin.attention_kv_cache_group_get_cache")
+    .set_body_typed(AttentionKVCacheGroupGetCache);
+
 TVM_REGISTER_GLOBAL("vm.builtin.attention_kv_cache_create")
     .set_body_typed(AttentionKVCache::Create);
 

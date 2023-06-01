@@ -199,7 +199,7 @@ class AttentionKVCacheGroup : public ObjectRef {
     for (size_t i = 0; i < num_cache; ++i) {
       auto c = make_object<AttentionKVCacheObj>();
       DLManagedTensor* data_view = data.ToDLPack();
-      data_view->dl_tensor.byte_offset = i * cache_offset;
+      data_view->dl_tensor.data = (void*)((char*)(data_view->dl_tensor.data) + i * cache_offset);
       data_view->dl_tensor.shape = const_cast<ShapeTuple::index_type*>(n->cache_shape.data());
 
       c->data = NDArray::FromDLPack(data_view);

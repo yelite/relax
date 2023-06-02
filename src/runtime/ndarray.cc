@@ -208,7 +208,7 @@ NDArray NDArray::Empty(ShapeTuple shape, DLDataType dtype, Device dev, Optional<
 
 NDArray NDArray::FromExternalDLTensor(const DLTensor& dl_tensor) {
   ICHECK(::tvm::runtime::IsContiguous(dl_tensor)) << "External DLTensor must be contiguous.";
-  // ICHECK(IsAligned(dl_tensor)) << "Data in DLTensor is not aligned as required by NDArray";
+  ICHECK(IsAligned(dl_tensor)) << "Data in DLTensor is not aligned as required by NDArray";
   NDArray::Container* data = new NDArray::Container();
 
   data->SetDeleter(Internal::SelfDeleter);
@@ -241,8 +241,8 @@ NDArray NDArray::FromDLPack(DLManagedTensor* tensor) {
   // fill up content.
   data->manager_ctx = tensor;
   ICHECK(::tvm::runtime::IsContiguous(tensor->dl_tensor)) << "DLManagedTensor must be contiguous.";
-  ICHECK(IsAligned(tensor->dl_tensor))
-      << "Data in DLManagedTensor is not aligned as required by NDArray";
+  // ICHECK(IsAligned(tensor->dl_tensor))
+  //     << "Data in DLManagedTensor is not aligned as required by NDArray";
   data->dl_tensor = tensor->dl_tensor;
   // update shape_
   std::vector<ShapeTuple::index_type> shape;

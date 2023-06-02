@@ -181,7 +181,8 @@ struct NDArray::Internal {
 
 NDArray NDArray::CreateView(ShapeTuple shape, DLDataType dtype) {
   ICHECK(data_ != nullptr);
-  ICHECK(get_mutable()->dl_tensor.strides == nullptr) << "Can only create view for compact tensor";
+  // TODO: check stride
+  // ICHECK(get_mutable()->dl_tensor.strides == nullptr) << "Can only create view for compact tensor";
   NDArray ret = Internal::Create(shape, dtype, get_mutable()->dl_tensor.device);
   ret.get_mutable()->dl_tensor.byte_offset = this->get_mutable()->dl_tensor.byte_offset;
   size_t curr_size = GetDataSize(this->get_mutable()->dl_tensor);

@@ -42,8 +42,6 @@ using namespace tvm::runtime;
 using namespace tvm::runtime::json;
 
 class CublasJSONRuntime : public JSONRuntimeBase {
-  using tvm::contrib::CuBlasLtThreadEntry;
-
  public:
   CublasJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
                     const Array<String> const_names)
@@ -54,6 +52,7 @@ class CublasJSONRuntime : public JSONRuntimeBase {
   const char* type_key() const override { return "cublas_json"; }  // May be overridden
 
   void Run() override {
+    using tvm::contrib::CuBlasLtThreadEntry;
     CuBlasLtThreadEntry* entry_ptr = CuBlasLtThreadEntry::ThreadLocal();
 
     for (size_t i = 0; i < nodes_.size(); ++i) {

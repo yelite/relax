@@ -126,6 +126,7 @@ class WorkspaceProvider : ExprMutator {
     }
 
     for (const auto& [gvar, f] : mod_->functions) {
+      workspace_var_main_ = Var();
       if (!f->IsInstance<relax::FunctionNode>() || f->GetAttr<String>(attr::kCodegen) ||
           f->GetAttr<String>(attr::kComposite)) {
         continue;
